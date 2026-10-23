@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="ko"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,viewport-fit=cover">
+<title>산타에게 보내는 소원 — 털 프로토타입</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
+<style>
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;height:100%;background:#1f4a2a;overflow:hidden;font-family:"Pretendard Variable",Pretendard,-apple-system,system-ui,sans-serif;-webkit-font-smoothing:antialiased;touch-action:none}
+#fur{position:fixed;inset:0;width:100%;height:100%;display:block}
+.ui{position:fixed;inset:0;display:flex;flex-direction:column;align-items:center;padding:max(60px,env(safe-area-inset-top)) 24px 36px;pointer-events:none}
+.ui>*{pointer-events:auto}
+/* 자수(새틴 스티치) 글자 */
+.emb{font-weight:900;letter-spacing:-.02em;line-height:.95;text-align:center;color:#f7d4dc;
+  background:repeating-linear-gradient(135deg,#ffd9e2 0 1.5px,#e9a8b8 1.5px 3px,#f6c6d2 3px 4.5px);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;
+  filter:drop-shadow(0 1px 0 rgba(0,0,0,.35)) drop-shadow(0 2px 2px rgba(0,0,0,.35)) drop-shadow(0 -1px 0 rgba(255,255,255,.25))}
+.emb.big{font-size:54px}
+.emb.small{font-size:13px;letter-spacing:.3em;margin-bottom:14px;color:#fff;background:repeating-linear-gradient(135deg,#fff 0 1px,#dcdcdc 1px 2px);-webkit-background-clip:text;background-clip:text}
+.sub{margin:14px 0 26px;color:rgba(255,255,255,.85);font-size:14px;text-shadow:0 1px 0 rgba(0,0,0,.4);text-align:center}
+/* 펠트 패치 (입력 카드): 블랭킷 스티치 테두리 */
+.patch{position:relative;width:100%;max-width:360px;background:#f3e9d6;border-radius:22px;padding:22px 20px 14px;color:#2a1a10;
+  box-shadow:0 10px 24px rgba(0,0,0,.45),inset 0 2px 0 rgba(255,255,255,.7),inset 0 -3px 0 rgba(0,0,0,.08)}
+.patch:before{content:'';position:absolute;inset:6px;border-radius:17px;border:2px dashed #d8343f;opacity:.85}
+.patch:after{content:'';position:absolute;inset:0;border-radius:22px;background:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='80' height='80'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='1.1' numOctaves='2'/><feColorMatrix values='0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 .12 0'/></filter><rect width='80' height='80' filter='url(%23n)'/></svg>");pointer-events:none;mix-blend-mode:multiply}
+.patch label{display:block;font-size:11px;font-weight:700;letter-spacing:.14em;color:#b9472f;margin-bottom:8px}
+.patch textarea{width:100%;height:118px;border:0;background:transparent;resize:none;outline:0;padding:0;font:inherit;font-size:24px;line-height:1.4;color:#2a1a10;letter-spacing:-.02em}
+.patch textarea::placeholder{color:#b5a58d}
+.patch .row{display:flex;justify-content:space-between;font-size:12px;color:#9a8a74;border-top:1.5px dashed rgba(185,71,47,.35);padding-top:10px;margin-top:4px;position:relative;z-index:1}
+/* 자수 트리 뱃지 */
+.badge{position:absolute;right:-10px;top:-34px;width:74px;height:74px;filter:drop-shadow(0 4px 6px rgba(0,0,0,.4))}
+/* 직조 라벨 버튼 */
+button{font:inherit}
+#send{margin-top:22px;width:100%;max-width:360px;height:58px;border:0;border-radius:14px;cursor:pointer;color:#fff;font-size:17px;font-weight:800;letter-spacing:.02em;
+  background:repeating-linear-gradient(90deg,#d8343f 0 2px,#c22a35 2px 4px);box-shadow:0 8px 18px rgba(0,0,0,.4),inset 0 0 0 3px #f3e9d6,inset 0 0 0 5px #d8343f;text-shadow:0 1px 0 rgba(0,0,0,.35)}
+#send:active{transform:scale(.975)}
+#send:disabled{filter:saturate(.3) brightness(.8)}
+.foot{margin-top:auto;font-size:11px;letter-spacing:.2em;color:rgba(255,255,255,.55);text-shadow:0 1px 0 rgba(0,0,0,.4)}
+.pill{position:fixed;right:18px;top:max(18px,env(safe-area-inset-top));font-size:11px;color:#fff;background:rgba(0,0,0,.35);border:1px solid rgba(255,255,255,.25);border-radius:999px;padding:5px 10px;backdrop-filter:blur(8px)}
+.pill b{display:inline-block;width:6px;height:6px;border-radius:50%;background:#34c759;margin-right:6px;vertical-align:1px}
+</style></head>
+<body>
+<canvas id="fur"></canvas>
+<div class="pill"><b></b>연결됨</div>
+<div class="ui">
+  <div class="emb small">SANTA'S DELIVERY</div>
+  <div class="emb big">산타에게<br>소원을</div>
+  <p class="sub">털을 쓰다듬어 보세요 · 한 문장이면 충분해요</p>
+  <div class="patch">
+    <svg class="badge" viewBox="0 0 74 74"><defs><pattern id="st" width="3" height="3" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width="3" height="1.4" fill="rgba(255,255,255,.18)"/></pattern></defs>
+      <circle cx="37" cy="37" r="35" fill="#1f7a46"/><circle cx="37" cy="37" r="35" fill="url(#st)"/><circle cx="37" cy="37" r="32" fill="none" stroke="#f3e9d6" stroke-width="2.2" stroke-dasharray="3 2.5"/>
+      <path d="M37 14 L50 36 L43 36 L54 54 L20 54 L31 36 L24 36Z" fill="#2fa15a" stroke="#176236" stroke-width="1.2"/><path d="M37 14 L50 36 L43 36 L54 54 L20 54 L31 36 L24 36Z" fill="url(#st)"/>
+      <rect x="33" y="54" width="8" height="7" fill="#7a4a24"/><g fill="#fff"><circle cx="34" cy="44" r="1.6"/><circle cx="42" cy="48" r="1.6"/><circle cx="37" cy="33" r="1.6"/><circle cx="30" cy="50" r="1.6"/></g><path d="M37 8 l2.2 4.6 5 .6 -3.7 3.4 1 5 -4.5-2.5 -4.5 2.5 1-5 -3.7-3.4 5-.6z" fill="#f5c86a"/></svg>
+    <label>소원</label>
+    <textarea id="text" maxlength="60" placeholder="예) 가족 모두 건강하기"></textarea>
+    <div class="row"><span>한 문장 · 최대 60자</span><span><span id="c">0</span> / 60</span></div>
+  </div>
+  <button id="send">산타에게 보내기</button>
+  <div class="foot">A-PLAN COMPANY</div>
+</div>
+<script>
+/* ===== 실제 털 가닥 시뮬레이션 =====
+   화면 전체에 수만 가닥의 털(각각 4마디 폴리라인)을 깔고, 손가락 주변의 "바람장(field)"을
+   CPU에서 스프링 물리로 계산 → 텍스처로 올려 각 가닥이 휘어지고(parting) 천천히 되돌아온다. */
+const cv=document.getElementById('fur');const gl=cv.getContext('webgl',{antialias:true,alpha:false,premultipliedAlpha:false});
+let DPR=Math.min(2,devicePixelRatio||1);
+const vs=`attribute vec2 base;attribute vec2 rest;attribute float t;attribute float side;attribute float len;attribute float shade;attribute float seed;
+uniform vec2 res;uniform sampler2D field;uniform vec2 fieldRes;uniform float time;
+varying float vShade;varying float vT;varying float vBend;
+void main(){
+  vec2 uv=base/res;
+  vec4 f=texture2D(field,uv);
+  vec2 d=(f.xy-0.5)*2.0*140.0;              // 바람장 변위(px)
+  float sway=sin(time*1.6+seed*6.28+base.x*.01)*1.5;
+  vec2 dir=rest;                           // 기본 결(위쪽, 약간 랜덤)
+  float tt=t*t;
+  vec2 p=base+dir*len*t+d*tt+vec2(sway,0.)*tt;
+  // 두께: 뿌리 굵고 끝 뾰족
+  vec2 tang=normalize(dir*len+2.0*d*t+vec2(1e-4,0.));
+  vec2 nrm=vec2(-tang.y,tang.x);
+  float w=(1.0-t*.85)*1.1*${1}.0;
+  p+=nrm*side*w;
+  vShade=shade;vT=t;vBend=length(d)/140.0;
+  vec2 c=p/res*2.0-1.0;
+  gl_Position=vec4(c.x,c.y,0.,1.);}`;
+const fs=`precision mediump float;varying float vShade;varying float vT;varying float vBend;
+void main(){
+  vec3 dark=vec3(.07,.22,.12),mid=vec3(.19,.47,.26),light=vec3(.58,.84,.6);
+  vec3 c=mix(dark,mid,vShade);c=mix(c,light,vShade*vShade*.7);
+  c*=.55+.55*vT;                            // 끝으로 갈수록 밝게
+  c+=vec3(.25,.3,.2)*vBend*vT;              // 휘어진 가닥은 빛을 받아 윤기
+  gl_FragColor=vec4(c,1.);}`;
+function sh(type,src){const s=gl.createShader(type);gl.shaderSource(s,src);gl.compileShader(s);if(!gl.getShaderParameter(s,gl.COMPILE_STATUS))console.error(gl.getShaderInfoLog(s));return s;}
+const prog=gl.createProgram();gl.attachShader(prog,sh(gl.VERTEX_SHADER,vs.replace('${1}',''+DPR.toFixed(0))));gl.attachShader(prog,sh(gl.FRAGMENT_SHADER,fs));gl.linkProgram(prog);gl.useProgram(prog);
+const A=n=>gl.getAttribLocation(prog,n),U=n=>gl.getUniformLocation(prog,n);
+const SEG=4;             // 가닥당 마디
+let chunks=[];
+function build(){
+  const W=cv.width,H=cv.height;const spacing=3.2*DPR;const cols=Math.ceil(W/spacing),rows=Math.ceil(H/spacing);
+  // 어두운(짧은) 가닥 → 밝은(긴) 가닥 순으로 그려 깊이감
+  const strands=[];
+  for(let r=0;r<rows;r++)for(let c=0;c<cols;c++){const x=c*spacing+Math.random()*spacing,y=r*spacing+Math.random()*spacing;const shade=Math.random();
+    strands.push({x,y,shade,len:(20+Math.random()*24+shade*14)*DPR,ang:Math.PI/2+(Math.random()-.5)*.9,seed:Math.random()});}
+  strands.sort((a,b)=>a.shade-b.shade);
+  chunks=[];const PER=8000;
+  for(let i=0;i<strands.length;i+=PER){const part=strands.slice(i,i+PER);const n=part.length;const vpn=SEG*2;
+    const base=new Float32Array(n*vpn*2),rest=new Float32Array(n*vpn*2),t=new Float32Array(n*vpn),side=new Float32Array(n*vpn),len=new Float32Array(n*vpn),shade=new Float32Array(n*vpn),seed=new Float32Array(n*vpn);
+    const idx=new Uint16Array(n*(SEG-1)*6);let vi=0,ii=0;
+    for(const s of part){const v0=vi;const dx=Math.cos(s.ang),dy=Math.sin(s.ang);
+      for(let k=0;k<SEG;k++)for(let sd=-1;sd<=1;sd+=2){base[vi*2]=s.x;base[vi*2+1]=s.y;rest[vi*2]=dx;rest[vi*2+1]=dy;t[vi]=k/(SEG-1);side[vi]=sd;len[vi]=s.len;shade[vi]=s.shade;seed[vi]=s.seed;vi++;}
+      for(let k=0;k<SEG-1;k++){const a=v0+k*2;idx[ii++]=a;idx[ii++]=a+1;idx[ii++]=a+2;idx[ii++]=a+1;idx[ii++]=a+3;idx[ii++]=a+2;}}
+    const mk=(name,arr,size)=>{const b=gl.createBuffer();gl.bindBuffer(gl.ARRAY_BUFFER,b);gl.bufferData(gl.ARRAY_BUFFER,arr,gl.STATIC_DRAW);return{b,loc:A(name),size};};
+    const ib=gl.createBuffer();gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER,ib);gl.bufferData(gl.ELEMENT_ARRAY_BUFFER,idx,gl.STATIC_DRAW);
+    chunks.push({attrs:[mk('base',base,2),mk('rest',rest,2),mk('t',t,1),mk('side',side,1),mk('len',len,1),mk('shade',shade,1),mk('seed',seed,1)],ib,count:ii});}
+}
+/* ---- 바람장(CPU 스프링) ---- */
+const FX=40;let FY=80;let fpx,fvx,fpy,fvy,fimg,ftex=gl.createTexture();
+function initField(){FY=Math.round(FX*cv.height/cv.width);const n=FX*FY;fpx=new Float32Array(n);fvx=new Float32Array(n);fpy=new Float32Array(n);fvy=new Float32Array(n);fimg=new Uint8Array(n*4);
+  gl.bindTexture(gl.TEXTURE_2D,ftex);gl.texImage2D(gl.TEXTURE_2D,0,gl.RGBA,FX,FY,0,gl.RGBA,gl.UNSIGNED_BYTE,null);
+  gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MIN_FILTER,gl.LINEAR);gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MAG_FILTER,gl.LINEAR);gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_S,gl.CLAMP_TO_EDGE);gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_T,gl.CLAMP_TO_EDGE);}
+function resize(){cv.width=innerWidth*DPR;cv.height=innerHeight*DPR;gl.viewport(0,0,cv.width,cv.height);gl.uniform2f(U('res'),cv.width,cv.height);build();initField();}
+addEventListener('resize',resize);resize();
+/* 터치 */
+const touches=new Map();
+function tPos(e){return{x:e.clientX*DPR,y:(innerHeight-e.clientY)*DPR};}
+function down(id,e){const p=tPos(e);touches.set(id,{x:p.x,y:p.y,px:p.x,py:p.y});if(navigator.vibrate)navigator.vibrate(6);}
+function move(id,e){const t=touches.get(id);if(!t)return;const p=tPos(e);t.px=t.x;t.py=t.y;t.x=p.x;t.y=p.y;}
+cv.addEventListener('touchstart',e=>{for(const t of e.changedTouches)down(t.identifier,t);},{passive:true});
+cv.addEventListener('touchmove',e=>{for(const t of e.changedTouches)move(t.identifier,t);},{passive:true});
+const up=e=>{for(const t of e.changedTouches)touches.delete(t.identifier);};cv.addEventListener('touchend',up);cv.addEventListener('touchcancel',up);
+cv.addEventListener('mousedown',e=>down(0,e));cv.addEventListener('mousemove',e=>move(0,e));addEventListener('mouseup',()=>touches.delete(0));
+function stepField(dt){
+  const R=130*DPR,k=22,damp=4.2;const cw=cv.width/FX,ch=cv.height/FY;
+  for(let j=0;j<FY;j++)for(let i=0;i<FX;i++){const n=j*FX+i;const cx=(i+.5)*cw,cy=(j+.5)*ch;let fx=0,fy=0;
+    for(const t of touches.values()){const dx=cx-t.x,dy=cy-t.y;const r=Math.hypot(dx,dy);if(r<R){const w=(1-r/R);const ww=w*w;
+      // 손가락에서 바깥으로 밀어내기(가르기)
+      if(r>1){fx+=dx/r*ww*2.6;fy+=dy/r*ww*2.6;}
+      // 손가락 이동 방향으로 쓸림
+      const mx=t.x-t.px,my=t.y-t.py;fx+=mx*ww*.3;fy+=my*ww*.3;
+      // 눌린 자리: 가닥을 눕히기 위해 살짝 아래로
+      fy-=ww*.9;}}
+    const ax=-k*fpx[n]-damp*fvx[n]+fx*900,ay=-k*fpy[n]-damp*fvy[n]+fy*900;
+    fvx[n]+=ax*dt;fvy[n]+=ay*dt;fpx[n]+=fvx[n]*dt;fpy[n]+=fvy[n]*dt;
+    const sx=Math.max(-1,Math.min(1,fpx[n]/140)),sy=Math.max(-1,Math.min(1,fpy[n]/140));
+    fimg[n*4]=(sx*.5+.5)*255;fimg[n*4+1]=(sy*.5+.5)*255;fimg[n*4+2]=0;fimg[n*4+3]=255;}
+  gl.bindTexture(gl.TEXTURE_2D,ftex);gl.texSubImage2D(gl.TEXTURE_2D,0,0,0,FX,FY,gl.RGBA,gl.UNSIGNED_BYTE,fimg);
+}
+let last=0;
+function frame(now){const dt=Math.min(.033,(now-last)/1000||.016);last=now;stepField(dt);
+  gl.clearColor(.08,.24,.13,1);gl.clear(gl.COLOR_BUFFER_BIT);
+  gl.uniform1f(U('time'),now/1000);gl.uniform1i(U('field'),0);gl.activeTexture(gl.TEXTURE0);gl.bindTexture(gl.TEXTURE_2D,ftex);
+  for(const c of chunks){for(const a of c.attrs){gl.bindBuffer(gl.ARRAY_BUFFER,a.b);gl.enableVertexAttribArray(a.loc);gl.vertexAttribPointer(a.loc,a.size,gl.FLOAT,false,0,0);}
+    gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER,c.ib);gl.drawElements(gl.TRIANGLES,c.count,gl.UNSIGNED_SHORT,0);}
+  requestAnimationFrame(frame);}
+requestAnimationFrame(frame);
+document.getElementById('text').addEventListener('input',e=>document.getElementById('c').textContent=e.target.value.length);
+window.demoTouch=(x,y,x2,y2)=>{down(9,{clientX:x,clientY:y});if(x2!=null)move(9,{clientX:x2,clientY:y2});};
+window.demoUp=()=>touches.delete(9);
+</script>
+</body></html>
