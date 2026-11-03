@@ -222,7 +222,8 @@ function connect(){
   peer=new Peer();
   peer.on('open',()=>{conn=peer.connect(id,{reliable:true});
     conn.on('open',()=>{ready=true;lastPong=Date.now();setStatus('연결됨');update();});
-    conn.on('data',d=>{if(d&&d.type==='pong')lastPong=Date.now();if(d&&d.type==='ack'){lastPong=Date.now();if(window.sfxDone)window.sfxDone();if(waitingAck){clearTimeout(waitingAck);waitingAck=null;}progress(1);done.classList.add('ok');dmsg.textContent='배달 완료';if(navigator.vibrate)navigator.vibrate([20,40,20]);}});
+    conn.on('data',d=>{if(d&&d.type==='pong')lastPong=Date.now();if(d&&d.type==='ack'){lastPong=Date.now();if(window.sfxDone)window.sfxDone();if(waitingAck){clearTimeout(waitingAck);waitingAck=null;}progress(1);done.classList.add('ok');dmsg.textContent='배달 완료';if(navigator.vibrate)navigator.vibrate([20,40,20]);}
+      if(d&&d.type==='reject'){lastPong=Date.now();if(waitingAck){clearTimeout(waitingAck);waitingAck=null;}progress(0);done.classList.remove('ok');dmsg.textContent='보낼 수 없는 표현이 있어요 · 다른 문장으로 써 주세요';if(navigator.vibrate)navigator.vibrate([60,40,60]);}});
     conn.on('close',()=>{ready=false;setStatus('재연결 중');update();setTimeout(connect,2000);});
     conn.on('error',()=>{ready=false;setStatus('재연결 중');update();setTimeout(connect,3000);});});
   peer.on('error',e=>{ready=false;update();setStatus(e.type==='peer-unavailable'?'화면 대기 중':'재연결 중');setTimeout(connect,4000);});
